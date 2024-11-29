@@ -1,84 +1,118 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
+import { Event } from '../types/event';
+
+interface WebSocketMessage {
+    type: string;
+    data?: any;
+    error?: string;
+    channel?: string;
+}
 
 interface UseWebSocketOptions {
-  reconnectAttempts?: number;
-  reconnectInterval?: number;
-  onOpen?: () => void;
-  onClose?: () => void;
-  onError?: (error: Event) => void;
+    onEvent?: (event: Event) => void;
+    onError?: (error: string) => void;
+    clientId?: number;
+    autoReconnect?: boolean;
 }
 
-export function useWebSocket(url: string, options: UseWebSocketOptions = {}) {
-  const {
-    reconnectAttempts = 3,
-    reconnectInterval = 5000,
-    onOpen,
-    onClose,
-    onError,
-  } = options;
+export const useWebSocket = (options: UseWebSocketOptions = {}) => {
+    const wsRef = useRef<WebSocket | null>(null);
+    const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
 
-  const [lastMessage, setLastMessage] = useState<MessageEvent | null>(null);
-  const [readyState, setReadyState] = useState<number>(WebSocket.CONNECTING);
-  const websocket = useRef<WebSocket | null>(null);
-  const reconnectCount = useRef(0);
-  const reconnectTimeoutId = useRef<NodeJS.Timeout>();
+    const connect = useCallback(() => {
+        if (wsRef.current?.readyState === WebSocket.OPEN) return;
 
-  const connect = useCallback(() => {
-    try {
-      websocket.current = new WebSocket(url);
-      
-      websocket.current.onopen = () => {
-        setReadyState(WebSocket.OPEN);
-        reconnectCount.current = 0;
-        onOpen?.();
-      };
+        const wsUrl = `${import.meta.env.VITE_WS_URL || 'ws://localhost:3003'}/ws`;
+        const ws = new WebSocket(wsUrl);
 
-      websocket.current.onclose = () => {
-        setReadyState(WebSocket.CLOSED);
-        onClose?.();
+        ws.onopen = () => {
+            console.log('WebSocket conectado a:', wsUrl);
+            if (options.clientId) {
+                ws.send(JSON.stringify({
+                    type: 'authenticate',
+                    clientId: options.clientId
+                }));
+            }
+        };
 
-        if (reconnectCount.current < reconnectAttempts) {
-          reconnectTimeoutId.current = setTimeout(() => {
-            reconnectCount.current += 1;
-            connect();
-          }, reconnectInterval);
+        ws.onmessage = (event) => {
+            try {
+                const message: WebSocketMessage = JSON.parse(event.data);
+                
+                switch (message.type) {
+                    case 'event':
+                        options.onEvent?.(message.data);
+                        break;
+                    case 'error':
+                        options.onError?.(message.error || 'Error desconocido');
+                        break;
+                    case 'authenticated':
+                        console.log('Cliente autenticado:', message.data);
+                        break;
+                    default:
+                        console.log('Mensaje no manejado:', message);
+                }
+            } catch (error) {
+                console.error('Error al procesar mensaje:', error);
+            }
+        };
+
+        ws.onerror = (error) => {
+            console.error('Error de WebSocket:', error);
+            options.onError?.('Error de conexión');
+        };
+
+        ws.onclose = () => {
+            console.log('WebSocket desconectado');
+            wsRef.current = null;
+
+            if (options.autoReconnect) {
+                reconnectTimeoutRef.current = setTimeout(() => {
+                    console.log('Intentando reconexión...');
+                    connect();
+                }, 5000);
+            }
+        };
+
+        wsRef.current = ws;
+    }, [options.clientId, options.onEvent, options.onError, options.autoReconnect]);
+
+    const subscribe = useCallback((channel: string) => {
+        if (wsRef.current?.readyState === WebSocket.OPEN) {
+            wsRef.current.send(JSON.stringify({
+                type: 'subscribe',
+                channel
+            }));
         }
-      };
+    }, []);
 
-      websocket.current.onerror = (error) => {
-        onError?.(error);
-      };
+    const unsubscribe = useCallback((channel: string) => {
+        if (wsRef.current?.readyState === WebSocket.OPEN) {
+            wsRef.current.send(JSON.stringify({
+                type: 'unsubscribe',
+                channel
+            }));
+        }
+    }, []);
 
-      websocket.current.onmessage = (message) => {
-        setLastMessage(message);
-      };
-    } catch (error) {
-      console.error('WebSocket connection error:', error);
-    }
-  }, [url, reconnectAttempts, reconnectInterval, onOpen, onClose, onError]);
+    const disconnect = useCallback(() => {
+        if (reconnectTimeoutRef.current) {
+            clearTimeout(reconnectTimeoutRef.current);
+        }
+        wsRef.current?.close();
+    }, []);
 
-  useEffect(() => {
-    connect();
+    useEffect(() => {
+        connect();
+        return () => {
+            disconnect();
+        };
+    }, [connect, disconnect]);
 
-    return () => {
-      if (websocket.current) {
-        websocket.current.close();
-      }
-      if (reconnectTimeoutId.current) {
-        clearTimeout(reconnectTimeoutId.current);
-      }
+    return {
+        subscribe,
+        unsubscribe,
+        disconnect,
+        reconnect: connect
     };
-  }, [connect]);
-
-  const sendMessage = useCallback((message: string | ArrayBufferLike | Blob | ArrayBufferView) => {
-    if (websocket.current && websocket.current.readyState === WebSocket.OPEN) {
-      websocket.current.send(message);
-    }
-  }, []);
-
-  return {
-    lastMessage,
-    readyState,
-    sendMessage,
-  };
-}
+}; 

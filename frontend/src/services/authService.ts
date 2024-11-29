@@ -1,54 +1,32 @@
-import axios from 'axios';
-import { API_URL } from '../config';
+import axiosInstance from '../utils/axios';
 
 interface LoginCredentials {
-  username: string;
-  password: string;
+    username: string;
+    password: string;
 }
 
-interface SignupData {
-  email: string;
-  password: string;
-  full_name: string;
+interface LoginResponse {
+    token: string;
+    user: {
+        id: number;
+        username: string;
+        role: string;
+        permissions: string[];
+    };
 }
 
-interface AuthResponse {
-  access_token: string;
-  token_type: string;
-}
+export const authService = {
+    async login(credentials: LoginCredentials): Promise<LoginResponse> {
+        const response = await axiosInstance.post('/auth/login', credentials);
+        return response.data;
+    },
 
-const authService = {
-  async login(credentials: LoginCredentials): Promise<AuthResponse> {
-    const formData = new FormData();
-    formData.append('username', credentials.username);
-    formData.append('password', credentials.password);
+    async logout(): Promise<void> {
+        await axiosInstance.post('/auth/logout');
+    },
 
-    const response = await axios.post(`${API_URL}/login`, formData, {
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-    });
-    
-    if (response.data.access_token) {
-      localStorage.setItem('token', response.data.access_token);
+    async refreshToken(): Promise<LoginResponse> {
+        const response = await axiosInstance.post('/auth/refresh');
+        return response.data;
     }
-    
-    return response.data;
-  },
-
-  async signup(data: SignupData): Promise<any> {
-    const response = await axios.post(`${API_URL}/signup`, data);
-    return response.data;
-  },
-
-  logout() {
-    localStorage.removeItem('token');
-  },
-
-  getCurrentUser() {
-    const token = localStorage.getItem('token');
-    return token ? { token } : null;
-  },
-};
-
-export default authService;
+}; 

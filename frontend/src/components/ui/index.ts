@@ -1,12 +1,5 @@
-export * from './button';
+// src/components/ui/index.ts
 export * from './card';
-export * from './dialog';
+export * from './button';
 export * from './input';
-export * from './label';
-export * from './switch';
-export * from './slider';
-export * from './select';
-export * from './tabs';
-export * from './badge';
-export * from './sheet';
-export * from './dropdown-menu';
+// ... exporta otros componentes UI

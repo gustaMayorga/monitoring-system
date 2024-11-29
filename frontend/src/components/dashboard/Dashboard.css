@@ -1,0 +1,100 @@
+.dashboard {
+    padding: 1rem;
+}
+
+.status-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin: 2rem 0;
+}
+
+.status-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.status-card h3 {
+    margin: 0;
+    color: #666;
+    font-size: 1rem;
+}
+
+.status-number {
+    font-size: 2.5rem;
+    font-weight: bold;
+    margin: 0.5rem 0;
+    color: #333;
+}
+
+.status-number.online {
+    color: #28a745;
+}
+
+.status-number.offline {
+    color: #dc3545;
+}
+
+.dashboard-section {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin: 2rem 0;
+}
+
+.events-list {
+    margin-top: 1rem;
+}
+
+.event-item {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem;
+    border-bottom: 1px solid #eee;
+}
+
+.event-item:last-child {
+    border-bottom: none;
+}
+
+.event-time {
+    color: #666;
+    font-size: 0.9rem;
+    width: 100px;
+}
+
+.event-type {
+    background: #e9ecef;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    margin: 0 1rem;
+}
+
+.event-description {
+    flex: 1;
+}
+
+.last-update {
+    text-align: right;
+    color: #666;
+    font-size: 0.9rem;
+    margin-top: 2rem;
+}
+
+.loading {
+    text-align: center;
+    padding: 2rem;
+    color: #666;
+}
+
+.error-message {
+    background: #ffe6e6;
+    color: #cc0000;
+    padding: 1rem;
+    border-radius: 4px;
+    margin: 1rem 0;
+} 

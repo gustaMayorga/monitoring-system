@@ -1,0 +1,20 @@
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
+from app.core.database import get_db
+from app.models.client import Client
+from app.schemas.client import ClientCreate, ClientResponse
+
+router = APIRouter()
+
+@router.get("/clients")  # Note que es "/clients" no "/client"
+async def get_clients(db: Session = Depends(get_db)):
+    clients = db.query(Client).all()
+    return {"items": clients}
+
+@router.post("/clients")  # Note que es "/clients" no "/client"
+async def create_client(client: ClientCreate, db: Session = Depends(get_db)):
+    db_client = Client(**client.dict())
+    db.add(db_client)
+    db.commit()
+    db.refresh(db_client)
+    return db_client

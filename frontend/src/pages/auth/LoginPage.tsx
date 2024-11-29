@@ -1,62 +1,68 @@
+// src/pages/auth/LoginPage.tsx
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
+import { useAuth } from '@/contexts/AuthContext';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
-export default function LoginPage() {
+const LoginPage = () => {
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
+  const { login } = useAuth();
+  const [formData, setFormData] = useState({
+    username: '',
+    password: ''
+  });
+  const [error, setError] = useState('');
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    
-    // Simulación de login exitoso
-    setTimeout(() => {
-      localStorage.setItem('token', 'dummy-token');
+    try {
+      await login(formData.username, formData.password);
       navigate('/');
-    }, 1000);
+    } catch (err) {
+      setError('Error al iniciar sesión');
+    }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <Card className="w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+      <Card className="w-[400px]">
         <CardHeader>
-          <CardTitle>Iniciar Sesión</CardTitle>
+          <CardTitle className="text-2xl text-center">Sistema de Monitoreo</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                Email
-              </label>
+            {error && (
+              <div className="bg-red-100 text-red-600 p-2 rounded">{error}</div>
+            )}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Usuario</label>
               <input
-                type="email"
-                id="email"
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
-                required
+                type="text"
+                className="w-full px-3 py-2 border rounded-md"
+                value={formData.username}
+                onChange={(e) => setFormData(prev => ({...prev, username: e.target.value}))}
               />
             </div>
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                Contraseña
-              </label>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Contraseña</label>
               <input
                 type="password"
-                id="password"
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
-                required
+                className="w-full px-3 py-2 border rounded-md"
+                value={formData.password}
+                onChange={(e) => setFormData(prev => ({...prev, password: e.target.value}))}
               />
             </div>
             <button
               type="submit"
-              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              disabled={loading}
+              className="w-full py-2 px-4 bg-blue-600 text-white rounded-md hover:bg-blue-700"
             >
-              {loading ? 'Cargando...' : 'Iniciar Sesión'}
+              Iniciar Sesión
             </button>
           </form>
         </CardContent>
       </Card>
     </div>
   );
-}
+};
+
+export default LoginPage;

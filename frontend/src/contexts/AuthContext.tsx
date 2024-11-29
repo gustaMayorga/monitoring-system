@@ -1,59 +1,50 @@
 // src/contexts/AuthContext.tsx
-import { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState } from 'react';
 
 interface User {
-  id: number;
-  email: string;
-  name: string;
+  id: string;
+  username: string;
+  // Añade más campos según necesites
 }
 
 interface AuthContextType {
   user: User | null;
-  isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (username: string, password: string) => Promise<void>;
   logout: () => void;
+  isAuthenticated: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  const login = async (email: string, password: string) => {
+  const login = async (username: string, password: string) => {
     try {
-      // Aquí posteriormente conectaremos con el backend
-      // Por ahora simulamos un login exitoso
-      if (email && password) {
-        const mockUser = { id: 1, email, name: 'Usuario Demo' };
-        setUser(mockUser);
-        setIsAuthenticated(true);
-        localStorage.setItem('token', 'dummy-token');
-      } else {
-        throw new Error('Credenciales inválidas');
-      }
+      // Aquí implementaremos la llamada real al backend
+      // Por ahora, simulamos un login exitoso
+      setUser({ id: '1', username });
     } catch (error) {
+      console.error('Error en login:', error);
       throw error;
     }
   };
 
   const logout = () => {
     setUser(null);
-    setIsAuthenticated(false);
-    localStorage.removeItem('token');
   };
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated, login, logout }}>
+    <AuthContext.Provider value={{ user, login, logout, isAuthenticated: !!user }}>
       {children}
     </AuthContext.Provider>
   );
 }
 
-export const useAuth = () => {
+export function useAuth() {
   const context = useContext(AuthContext);
   if (!context) {
     throw new Error('useAuth debe ser usado dentro de un AuthProvider');
   }
   return context;
-};
+}

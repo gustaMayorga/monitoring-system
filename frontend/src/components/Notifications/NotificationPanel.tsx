@@ -1,232 +1,104 @@
-import React, { useEffect, useState } from 'react';
-import { Bell, Check, CheckCircle2, X, Volume2, VolumeX } from 'lucide-react';
+// src/components/Notifications/NotificationPanel.tsx
+import React, { useEffect } from 'react';
+import { useNotifications } from '@/contexts/NotificationContext';
 import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import notificationService, { 
-  Notification, 
-  NotificationPriority 
-} from '@/services/notificationService';
+  Bell,
+  Check,
+  AlertTriangle,
+  Camera,
+  Info
+} from 'lucide-react';
 
-
-const PRIORITY_CONFIG: Record<NotificationPriority, {
-  color: string;
-  icon: React.ReactNode;
-}> = {
-  critical: {
-    color: 'bg-red-100 text-red-800 border-red-200',
-    icon: <Bell className="h-4 w-4 text-red-600" />,
-  },
-  high: {
-    color: 'bg-orange-100 text-orange-800 border-orange-200',
-    icon: <Bell className="h-4 w-4 text-orange-600" />,
-  },
-  medium: {
-    color: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-    icon: <Bell className="h-4 w-4 text-yellow-600" />,
-  },
-  low: {
-    color: 'bg-green-100 text-green-800 border-green-200',
-    icon: <Bell className="h-4 w-4 text-green-600" />,
-  },
-};
-
-export default function NotificationPanel() {
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [soundEnabled, setSoundEnabled] = useState(true);
-  const [activeTab, setActiveTab] = useState('all');
+const NotificationPanel = () => {
+  const {
+    notifications,
+    unreadCount,
+    markAsRead,
+    markAllAsRead,
+  } = useNotifications();
 
   useEffect(() => {
-    // Cargar notificaciones iniciales
-    const currentNotifications = notificationService.getNotifications();
-    setNotifications(currentNotifications);
-    updateUnreadCount(currentNotifications);
-
-    // Suscribirse a nuevas notificaciones
-    const unsubscribe = notificationService.onNotification((notification) => {
-      setNotifications(prev => [notification, ...prev]);
-      updateUnreadCount([notification, ...notifications]);
-    });
-
-    return unsubscribe;
+    // Solicitar permiso para notificaciones del sistema
+    if (Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
   }, []);
 
-  const updateUnreadCount = (notifs: Notification[]) => {
-    setUnreadCount(notifs.filter(n => !n.read).length);
-  };
-
-  const handleAcknowledge = async (id: string) => {
-    try {
-      await notificationService.acknowledgeNotification(id);
-      setNotifications(prev =>
-        prev.map(n =>
-          n.id === id ? { ...n, acknowledged: true } : n
-        )
-      );
-    } catch (error) {
-      console.error('Error acknowledging notification:', error);
-    }
-  };
-
-  const handleMarkAsRead = async (id: string) => {
-    try {
-      await notificationService.markAsRead(id);
-      setNotifications(prev =>
-        prev.map(n =>
-          n.id === id ? { ...n, read: true } : n
-        )
-      );
-      updateUnreadCount(notifications);
-    } catch (error) {
-      console.error('Error marking notification as read:', error);
-    }
-  };
-
-  const handleClearAll = async () => {
-    try {
-      await notificationService.clearAllNotifications();
-      setNotifications([]);
-      setUnreadCount(0);
-    } catch (error) {
-      console.error('Error clearing notifications:', error);
-    }
-  };
-
-  const toggleSound = () => {
-    setSoundEnabled(!soundEnabled);
-    notificationService.toggleSound(!soundEnabled);
-  };
-
-  const getFilteredNotifications = () => {
-    switch (activeTab) {
-      case 'unread':
-        return notifications.filter(n => !n.read);
-      case 'acknowledged':
-        return notifications.filter(n => n.acknowledged);
-      case 'pending':
-        return notifications.filter(n => !n.acknowledged);
+  const getIcon = (type: string) => {
+    switch (type) {
+      case 'alarm':
+        return <AlertTriangle className="text-red-500" />;
+      case 'camera':
+        return <Camera className="text-blue-500" />;
       default:
-        return notifications;
+        return <Info className="text-gray-500" />;
     }
   };
 
   return (
-    <Sheet>
-      <SheetTrigger asChild>
-        <Button variant="ghost" className="relative">
-          <Bell className="h-5 w-5" />
+    <div className="fixed right-4 top-16 w-96 bg-white shadow-lg rounded-lg">
+      <div className="p-4 border-b flex justify-between items-center">
+        <div className="flex items-center">
+          <Bell className="w-5 h-5 mr-2" />
+          <h2 className="font-semibold">Notificaciones</h2>
           {unreadCount > 0 && (
-            <Badge
-              className="absolute -top-1 -right-1 px-1 min-w-[1.25rem] h-5"
-              variant="destructive"
-            >
+            <span className="ml-2 px-2 py-1 bg-red-100 text-red-600 rounded-full text-xs">
               {unreadCount}
-            </Badge>
+            </span>
           )}
-        </Button>
-      </SheetTrigger>
-      <SheetContent className="w-[400px] sm:w-[540px]">
-        <SheetHeader className="flex flex-row items-center justify-between">
-          <SheetTitle>Notificaciones</SheetTitle>
-          <div className="flex items-center space-x-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={toggleSound}
-            >
-              {soundEnabled ? (
-                <Volume2 className="h-4 w-4" />
-              ) : (
-                <VolumeX className="h-4 w-4" />
-              )}
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleClearAll}
-            >
-              <X className="h-4 w-4" />
-            </Button>
+        </div>
+        {unreadCount > 0 && (
+          <button
+            onClick={markAllAsRead}
+            className="text-sm text-blue-600 hover:text-blue-800"
+          >
+            Marcar todas como leídas
+          </button>
+        )}
+      </div>
+      <div className="max-h-96 overflow-y-auto">
+        {notifications.length === 0 ? (
+          <div className="p-4 text-center text-gray-500">
+            No hay notificaciones
           </div>
-        </SheetHeader>
-
-        <Tabs
-          defaultValue="all"
-          className="mt-4"
-          onValueChange={setActiveTab}
-        >
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="all">Todas</TabsTrigger>
-            <TabsTrigger value="unread">Sin leer</TabsTrigger>
-            <TabsTrigger value="pending">Pendientes</TabsTrigger>
-            <TabsTrigger value="acknowledged">Atendidas</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value={activeTab} className="mt-4 space-y-4">
-            {getFilteredNotifications().map((notification) => (
-              <div
-                key={notification.id}
-                className={`${
-                  PRIORITY_CONFIG[notification.priority].color
-                } p-4 rounded-lg border relative ${
-                  !notification.read ? 'font-medium' : ''
-                }`}
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start space-x-3">
-                    {PRIORITY_CONFIG[notification.priority].icon}
-                    <div>
-                      <h4 className="font-medium">{notification.title}</h4>
-                      <p className="text-sm mt-1">{notification.message}</p>
-                      <div className="flex items-center space-x-2 mt-2 text-xs text-gray-500">
-                        <span>{notification.source.name}</span>
-                        <span>•</span>
-                        <span>
-                          {new Date(notification.timestamp).toLocaleString()}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-start space-x-2">
-                    {!notification.acknowledged && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleAcknowledge(notification.id)}
-                      >
-                        <Check className="h-4 w-4" />
-                      </Button>
-                    )}
-                    {!notification.read && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleMarkAsRead(notification.id)}
-                      >
-                        <CheckCircle2 className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
+        ) : (
+          notifications.map(notification => (
+            <div
+              key={notification.id}
+              className={`p-4 border-b hover:bg-gray-50 ${
+                !notification.read ? 'bg-blue-50' : ''
+              }`}
+            >
+              <div className="flex items-start">
+                <div className="flex-shrink-0">
+                  {getIcon(notification.type)}
                 </div>
+                <div className="ml-3 flex-1">
+                  <p className="text-sm font-medium text-gray-900">
+                    {notification.title}
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    {notification.message}
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    {new Date(notification.timestamp).toLocaleString()}
+                  </p>
+                </div>
+                {!notification.read && (
+                  <button
+                    onClick={() => markAsRead(notification.id)}
+                    className="ml-2 text-blue-600 hover:text-blue-800"
+                  >
+                    <Check className="w-4 h-4" />
+                  </button>
+                )}
               </div>
-            ))}
-
-            {getFilteredNotifications().length === 0 && (
-              <div className="text-center text-gray-500 py-8">
-                No hay notificaciones
-              </div>
-            )}
-          </TabsContent>
-        </Tabs>
-      </SheetContent>
-    </Sheet>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
   );
-}
+};
+
+export default NotificationPanel;
